@@ -20,6 +20,7 @@ VERSION INFORMATION:
 This file is part of LogViewer.
 --->
 <cfcomponent displayname="Handler" extends="BasePlugin">
+	<cfset this.events = [] />
 
 	<cffunction name="init" access="public" output="false" returntype="any">
 		<cfargument name="mainManager" type="any" required="true" />
@@ -64,18 +65,36 @@ This file is part of LogViewer.
 			<cfset link = structnew() />
 			<cfset link.owner = "LogViewer">
 			<cfset link.page = "generic" />
-			<cfset link.title = "Log Viewer" />
+			<cfset link.title = "Logs" />
 			<cfset link.eventName = "logViewer-dash" />
-			<cfset link.icon = "#getAdminAssetPath()#bug.png" />
+			<cfset link.icon = "bi bi-list-columns-reverse" />
 
-			<cfif logsExist()>
-				<cfset link.title = "<strong>Log Viewer</strong>"/>
-				<cfset link.icon = "#getAdminAssetPath()#bug_error.png" />
+			<cfset local.count = getManager().getLogsManager().getLogCount()/>
+			<cfif local.count GT 0>
+				<cfset link.badge = local.count />
 			</cfif>
 
 			<cfset arguments.event.addLink(link)>
 
-		<cfelseif arguments.event.getName() EQ "logViewer-dash">
+			<cfelseif arguments.event.getname() EQ "dashboardPod" AND getManager().isCurrentUserLoggedIn()>
+<!---\\Adds a DashboardPod//--->
+			<cfsavecontent variable="outputData">
+				<cfoutput>
+					<cfif logsExist()>
+						There are New Log Entries. <a href="generic.cfm?event=logViewer-dash&owner=LogViewer&selected=logViewer-dash">Review the Logs</a>
+						| <a href="generic.cfm?event=logViewer-dash&owner=LogViewer&selected=logViewer-dash&clear=true">Clear the Logs</a>
+					<cfelse>
+						No errors to report.
+					</cfif>
+				</cfoutput>
+			</cfsavecontent>
+
+			<cfset local.data = structnew() />
+			<cfset local.data.title = "Error Logs" />
+			<cfset local.data.content = outputData />
+			<cfset arguments.event.addPod(local.data)>
+
+			<cfelseif arguments.event.getName() EQ "logViewer-dash">
 			<cfset data = arguments.event.getData() />
 
 			<cfif structKeyExists(arguments.event.data.externalData,"clear")>
@@ -135,11 +154,10 @@ This file is part of LogViewer.
 					table.logData th { background: #000000 !important; color: #ffffff !important; }
 				</style>
 				<cfif logsExist()>
-					<ul>
-						<li><a href="generic.cfm?event=logViewer-dash&owner=LogViewer&selected=logViewer-dash&clear=true" style="color:red;">Clear logs</a></li>
-						<li><a href="generic.cfm?event=logViewer-dash&selected=logViewer-dash&enableVerbose=true">Enable verbose logging</a> (not an indicator that verbose logging is off)</li>
-					</ul>
-					<br/>
+					<div class="d-flex justify-content-start	 mb-3 align-items-center">
+						<a href="generic.cfm?event=logViewer-dash&owner=LogViewer&selected=logViewer-dash&clear=true"><button class="btn btn-outline-danger me-3">Clear the Logs</button></a>
+						<a href="generic.cfm?event=logViewer-dash&selected=logViewer-dash&enableVerbose=true"><button class="btn btn-outline-info me-3">Enable verbose logging</button></a> (not an indicator that verbose logging is off)
+					</div>
 					<cfset local.logs = getManager().getLogsManager().search() />
 						<cfoutput>
 						<cfloop from="1" to="#arrayLen(local.logs)#" index="local.i">
